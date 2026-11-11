@@ -1,0 +1,2 @@
+status,broker_server,symbol,asset_preset,setup,data_mode,news_mode,parameter_id,period_start_utc,period_end_utc,commission_assumption,slippage_assumption,closed_trade_count,net_expectancy_R,profit_factor,max_equity_drawdown_account_ccy,max_equity_drawdown_percent,max_consecutive_losses,ny_month,reference_session_date,notes
+NOT_RUN,,,,,,,,,,,,,,,,,,,,No market backtest or performance result supplied

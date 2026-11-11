@@ -1,0 +1,478 @@
+Act as a senior MQL5 developer and quantitative trading systems engineer.
+
+Build an MT5 Expert Advisor named:
+Biltech_VolumeProfile_EA
+
+PURPOSE
+Implement and test a previous-session Volume Profile strategy for:
+1. Gold, commonly XAUUSD.
+2. Nasdaq 100 CFDs, with broker-specific symbols.
+3. US30 / Dow Jones CFDs, with broker-specific symbols.
+
+This is a research EA. Do not claim profitability, invent backtest results,
+or describe its defaults as optimized.
+
+Inspect the existing workspace first. Preserve unrelated code.
+Use native MQL5 and standard libraries. No paid indicators, DLLs, external
+AI services, or dependencies requiring API keys.
+
+If MetaEditor or MT5 is unavailable, deliver the source and exact compilation
+and testing instructions. Clearly distinguish implemented, compiled, and
+actually tested work.
+
+Do not connect to or activate a live trading account.
+
+==================================================
+1. ARCHITECTURE AND SCOPE
+==================================================
+
+Use one EA instance per chart, trading only that chart's _Symbol.
+Provide separate research presets for GOLD, NASDAQ100, and US30.
+
+Do not hardcode broker symbol names or guess ambiguous mappings.
+AssetPreset must be selected explicitly.
+
+Read symbol properties dynamically:
+- Digits and point.
+- Trade tick size.
+- Minimum, maximum, and step volume.
+- Contract calculation mode.
+- Stops and freeze levels.
+- Supported filling modes.
+- Trade permissions and trading sessions.
+
+Support hedging and netting accounts.
+On netting accounts, block entry if any existing position on the symbol
+is not unambiguously owned by this EA.
+Never modify unrelated positions.
+
+Use an account-wide StrategyGroupID and per-instance magic number.
+Prevent duplicate instance ownership of the same symbol.
+
+Entry logic runs once per newly completed signal bar.
+Risk supervision and position management continue independently.
+
+==================================================
+2. VOLUME PROFILE DATA
+==================================================
+
+Provide explicit modes:
+
+A. QUOTE_TICK_PROFILE — default for CFD research
+- Load historical quote ticks using CopyTicksRange.
+- Use valid Bid prices and Bid-change events only.
+- Count each qualifying event once, weight = 1.
+- Do not count Ask-only updates or unchanged snapshots.
+- Label this "Bid quote-activity profile", not exchange volume.
+
+B. TRADE_VOLUME_PROFILE
+- Use valid trade-event ticks, Last price, and positive trade volume.
+- Filter using appropriate tick flags.
+- Do not count stale volume carried in quote-only records.
+- Validate that the feed supplies usable trade data.
+- Label it "Broker-supplied trade-volume profile".
+- Do not imply the data represents global market volume.
+
+C. M1_APPROXIMATION
+- Explicit opt-in only.
+- Allocate each completed M1 bar's tick_volume across overlapping
+  price bins in proportion to overlap with its High–Low range.
+- For a zero-range bar, allocate to the containing bin.
+- Label it "M1 approximate tick-volume profile".
+
+Never automatically switch modes when data is unavailable.
+Inadequate history must block new entries with an explanatory status.
+
+Handle API timeouts, partial downloads, chunk boundaries, and duplicate
+records without dropping legitimate same-millisecond events.
+Use bounded, incremental data loading rather than blocking OnTick.
+
+Validate data coverage against expected broker trading minutes.
+Report gaps, event count, and selected data mode.
+Do not assume a nonempty response proves complete coverage.
+
+==================================================
+3. PROFILE CALCULATION
+==================================================
+
+Defaults:
+- RequestedRows = 60.
+- ValueAreaPercent = 70.
+- Use only the previous completed valid reference session.
+
+Define bins deterministically:
+- Align lower boundary downward to trade tick size.
+- Choose a bin width that is an integer multiple of tick size and
+  covers the observed range within the requested row count.
+- Document actual row count and any rounding.
+- Include the maximum observed price in the final bin.
+
+POC:
+- Bin with the greatest weight.
+- On ties, choose the bin closest to the profile midpoint.
+- If still tied, choose the lower bin.
+- POC price = midpoint of the selected bin.
+
+Value area:
+- Start with the POC bin.
+- Compare the immediately adjacent unused bins above and below.
+- Add the higher-weight bin and repeat until accumulated weight
+  reaches or exceeds the selected percentage.
+- On ties, add the lower bin first.
+- VAH = upper edge of the highest included bin.
+- VAL = lower edge of the lowest included bin.
+
+This deterministic algorithm need not match TradingView exactly.
+Explain differences rather than claiming equivalence.
+
+Freeze POC, VAH, and VAL once the session completes.
+Never use current-session future data or rebuild historical signals
+with information unavailable when they occurred.
+
+Store previous reference-session close using the same price convention.
+Define "inside value" as VAL <= close <= VAH.
+
+==================================================
+4. TIME AND SESSION HANDLING
+==================================================
+
+All strategy session inputs use America/New_York time.
+
+Initial research presets:
+
+GOLD:
+- Reference session: 08:20–13:30 New York.
+- Entry window: 08:30–11:00 New York.
+- Close remaining EA positions at 11:00.
+
+NASDAQ100 and US30:
+- Reference session: 09:30–16:00 New York.
+- Entry window: 09:45–11:30 New York.
+- Close remaining EA positions at 11:30.
+
+These are configurable research windows, not claims about optimal hours
+or the complete exchange trading session.
+
+Implement US daylight-saving conversion by historical date.
+Do not hardcode Malaysian time or assume the broker follows US DST.
+
+Broker time conversion must support:
+- Explicit fixed UTC offset.
+- Explicit broker DST rule.
+- Historical date-to-offset schedule for backtests.
+
+Do not infer historical offsets from today's clock.
+Do not rely on TimeGMT differences in Strategy Tester.
+When conversion is unknown, block trading and explain required setup.
+
+Use half-open session intervals [start, end).
+Support overnight custom sessions.
+For weekends and holidays, locate the most recent completed eligible
+session within a configurable maximum lookback.
+Reject incomplete sessions; do not silently combine partial days.
+Support a holiday/early-close override file.
+
+Show broker, New York, and Malaysia times in the dashboard.
+
+==================================================
+5. COMMON SIGNAL RULES
+==================================================
+
+Defaults:
+- SignalTimeframe = M5.
+- ATRPeriod = 14.
+- All ATR values use completed bars.
+- Buffer = max(2 trade ticks, 0.10 × ATR).
+- Target = 2.0R.
+- One position per symbol.
+- Maximum 2 filled entries per symbol per New York day.
+- Maximum 1 filled entry per setup/direction per day.
+- No pyramiding or simultaneous opposite positions.
+
+Use Bid-based CFD signal bars consistently.
+Execute buys using Ask and sells using Bid.
+Respect the Bid/Ask side used to trigger protective orders.
+
+Signal is generated at a completed candle.
+Attempt entry on the first eligible subsequent tick.
+Expire the signal after that next signal bar.
+Reject entries whose price has moved more than 0.20 ATR from the
+signal close.
+Do not chase stale signals.
+
+If multiple setups signal simultaneously, priority:
+1. Value-area re-entry.
+2. Breakout continuation.
+3. POC bounce.
+
+Allow at most one submission for a signal identifier.
+Handle failed, delayed, and partially filled requests without duplication.
+
+==================================================
+6. SETUP A: VALUE-AREA RE-ENTRY
+==================================================
+
+Enabled by default.
+
+Eligibility:
+Previous reference session closed inside its value area.
+
+LONG:
+1. A completed M5 bar closes below frozen VAL.
+2. Start an excursion state.
+3. Within the next 3 completed bars, a candle closes strictly above
+   VAL and below VAH.
+4. That close confirms re-entry.
+5. Enter buy on the next eligible tick.
+6. Stop below the lowest low from the initial excursion bar through
+   the confirmation bar, minus Buffer.
+7. Target = actual entry + 2 × initial stop distance.
+
+SHORT:
+Mirror above:
+- Initial close above VAH.
+- Re-entry close strictly inside value.
+- Stop above excursion high plus Buffer.
+- Target 2R below entry.
+
+Expire excursion after 3 confirmation opportunities.
+Do not restart its timer on each additional outside close.
+Require a new completed inside-value bar before rearming an expired
+excursion in that direction.
+
+Default space filter:
+- Long: previous POC must be at or beyond the proposed target.
+- Short: previous POC must be at or beyond the proposed target
+  in the short direction.
+- Skip if entry has already passed POC.
+
+Make the space filter configurable.
+Log its effect separately in results.
+
+==================================================
+7. SETUP B: BREAKOUT CONTINUATION
+==================================================
+
+Implemented but disabled by default.
+
+Previous session may close inside or outside value.
+
+LONG:
+1. A completed bar closes above VAH + Buffer, after the preceding
+   completed bar closed at or below that threshold.
+2. Freeze breakout-bar high, ATR, and Buffer.
+3. Within the next 6 bars, a later bar touches the band
+   [VAH - Buffer, VAH + Buffer] and closes above VAH.
+4. That is the retest bar.
+5. Within the next 3 bars after the retest, a later candle closes
+   above the maximum of breakout-bar high and retest-bar high.
+6. Enter on the next eligible tick.
+7. Stop below the lowest low from retest through confirmation,
+   minus frozen Buffer.
+8. Target 2R.
+
+Invalidate if any bar before entry closes below VAH - Buffer.
+Expire states at their specified limits.
+
+SHORT:
+Mirror all rules at VAL.
+
+Require breakout, retest, and confirmation on separate bars.
+Do not use hindsight swing points or unconfirmed fractals.
+
+==================================================
+8. SETUP C: POC BOUNCE
+==================================================
+
+Implemented but disabled by default.
+
+LONG eligibility:
+Previous reference session closed above VAH.
+
+LONG:
+1. Previous completed candle closed above POC + Buffer.
+2. The next candle touches the POC buffer band.
+3. That candle closes above POC + Buffer and is bullish.
+4. Enter on the next eligible tick.
+5. Stop below the signal candle low minus Buffer.
+6. Target 2R.
+
+SHORT eligibility:
+Previous reference session closed below VAL.
+
+SHORT:
+Mirror the long rules, with approach from below and bearish rejection.
+
+Reject if the signal candle closes through the far side of the POC band.
+Document that these candle definitions are an operational research
+interpretation, not independently verified original-video rules.
+
+==================================================
+9. RISK AND PORTFOLIO LIMITS
+==================================================
+
+Defaults:
+- RiskPerTrade = 0.25% of current equity.
+- Maximum aggregate open planned risk across StrategyGroupID = 0.50%.
+- Maximum group daily loss = 1.00% of day-start account equity.
+- Maximum consecutive group losing trades per day = 3.
+
+Calculate volume using OrderCalcProfit for the proposed entry and stop
+in account currency.
+Include configurable estimated commissions and adverse slippage.
+Never hardcode pip value, lot value, or a gold contract size.
+
+Normalize volume DOWN to the permitted volume step.
+If minimum volume exceeds the risk budget, skip.
+Do not round volume upward or tighten a technical stop to force a trade.
+
+Use OrderCalcMargin and OrderCheck before submission.
+Use initial protective SL and TP on every entry.
+Never open intentionally without an SL.
+If protection is absent after a fill, attempt emergency closure and
+disable new entries with an explicit error.
+
+After actual fill:
+- Recalculate risk and target.
+- Never widen the original stop.
+- Adjust TP to actual fill-based R if valid.
+- If fill risk exceeds the configured tolerance, safely reduce or
+  close exposure and log the action.
+
+Default:
+- Break-even OFF.
+- Trailing stop OFF.
+- Partial exits OFF.
+- No martingale, grid, recovery sizing, or averaging down.
+
+Daily group P/L:
+- Realized P/L plus commission, swaps and fees.
+- Include change in group floating P/L from day-start baseline.
+- Exclude unrelated trades.
+- Attribute deals using position identifiers where necessary.
+
+At daily-loss breach:
+- Latch a block on new group entries until the next NY day.
+- Close group-owned positions by default.
+- Continue retrying safe closure during temporary execution failures.
+- Never touch unrelated positions.
+
+Synchronize portfolio limits between chart instances with atomic
+reservation/locking, so simultaneous entries cannot exceed risk caps.
+Persist state and reconcile it against account history after restart.
+
+==================================================
+10. SPREAD, NEWS AND EXECUTION FILTERS
+==================================================
+
+Reject new entries when:
+- Spread > 0.10 × completed-bar ATR.
+- Spread > 15% of planned stop distance.
+- Quotes are stale.
+- Symbol is not currently tradable.
+- Profile/history/time conversion is invalid.
+- Margin or aggregate risk checks fail.
+
+All thresholds must be configurable and logged.
+Do not silently increase thresholds to force trades.
+
+USD high-impact news:
+- Default exclusion = 15 minutes before and after.
+- Optional explicit FOMC exclusion = 30 minutes before and after.
+- Live/demo source: MT5 economic calendar where available.
+- Backtest source: supplied historical CSV.
+- Normalize calendar server timestamps correctly.
+- Missing required news data blocks new entries by default.
+- Provide an explicit disabled mode for separately labeled research.
+- Never silently pretend the filter operated in backtests.
+
+News filters must not stop protective position management.
+
+==================================================
+11. DASHBOARD, LOGGING AND RECOVERY
+==================================================
+
+Dashboard:
+- Asset preset and exact broker symbol.
+- Profile mode and coverage status.
+- Reference session timestamps.
+- POC, VAH, VAL and previous close.
+- Enabled setups and current setup state.
+- Spread, ATR and proposed risk.
+- Daily P/L and portfolio risk.
+- News/session status.
+- Specific reason trading is blocked.
+
+Draw frozen profile levels and entry/SL/TP markers.
+
+CSV logs:
+- Unique signal/trade identifier.
+- Parameter/version identifier.
+- Symbol, setup, direction and data mode.
+- Broker/UTC/New York timestamps.
+- Signal levels, entry, SL, TP and actual fills.
+- Volume, planned risk, realized P/L and realized R.
+- Spread, commissions, swaps and slippage.
+- Skip/rejection/exit reason.
+
+Persist daily counters and processed signals.
+Rebuild state safely after restart.
+Do not enter retroactively from an expired signal.
+Handle disconnects, unavailable history and terminal restarts.
+
+==================================================
+12. VERIFICATION
+==================================================
+
+Provide deterministic tests for:
+- Profile bins and conservation of total weight.
+- POC and value-area tie rules.
+- Session boundaries and previous-session selection.
+- US and broker DST, including mismatched transition weeks.
+- Missing tick/news history.
+- No look-ahead in all three setup state machines.
+- Signal expiry and duplicate prevention.
+- Lot rounding and account-currency risk.
+- Simultaneous portfolio risk reservations.
+- Daily reset and restart recovery.
+- Netting ownership conflicts.
+- Failed requests and partial fills.
+
+Provide hand-checkable synthetic fixtures showing both valid and
+invalid signals for each setup.
+
+Backtest instructions:
+- Prefer "Every tick based on real ticks".
+- Identify synthetic/missing periods and their effect on quote profiles.
+- Include realistic commission, spread and slippage assumptions.
+- Test each asset and setup separately first.
+- Reserve a later unseen period.
+- Report trade count, net expectancy in R, profit factor, maximum
+  equity drawdown, consecutive losses, and results by month/session.
+- Include portfolio testing guidance for correlated Nasdaq/US30 trades.
+- Do not optimize many parameters until a baseline is established.
+
+==================================================
+13. DELIVERABLES
+==================================================
+
+Deliver:
+1. Complete .mq5 and required .mqh source.
+2. GOLD, NASDAQ100 and US30 research .set presets.
+3. README with installation and configuration steps.
+4. Strategy specification explaining every operational interpretation.
+5. Historical news CSV schema and sample clearly marked synthetic.
+6. Broker-offset and holiday override formats.
+7. Test fixtures and actual test/compilation logs.
+8. Backtest and forward-demo checklist.
+9. Known limitations and unverified behavior.
+
+First summarize the implementation plan and assumptions briefly.
+Then implement without waiting for routine approval.
+Ask only for information that genuinely blocks implementation;
+otherwise expose broker-dependent values as validated inputs.
+
+Default AllowLiveTrading = false.
+Permit simulation and demo use.
+Do not invent broker timezone values, symbol specifications,
+historical data, or performance results.
