@@ -1,0 +1,4 @@
+# TEMPLATE ONLY: Add verified NY session dates, not guessed exchange holidays.
+# Closed row syntax: YYYY-MM-DD,CLOSED,,
+# Early close row syntax: YYYY-MM-DD,HH:MM,HH:MM,HH:MM
+date,reference_start,reference_end,entry_end
