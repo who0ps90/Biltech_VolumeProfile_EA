@@ -1,0 +1,5 @@
+PASS: 3 complete research presets match 60 source inputs and intended identity overrides
+PASS: all local MQL includes resolve; no DLL imports
+PASS: local documentation links resolve
+PASS: sample news marked synthetic; market results remain NOT_RUN
+PASS: zero-error/warning compile logs and fresh EA/native-test EX5 files

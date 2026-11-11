@@ -1,0 +1,20 @@
+Native runtime isolation preflight (2026-10-25, Asia/Kuala_Lumpur)
+
+Installed executable presence (read-only inspection):
+  C:\Program Files\XM Global MT5\terminal64.exe: present
+  C:\Program Files\XM Global MT5\metatester64.exe: present
+  WindowsSandbox.exe: unavailable
+  WindowsSandboxClient.exe: unavailable
+
+Execution outcome: NOT RUN.
+
+The optional runtime validation required guaranteed offline isolation.
+A fresh portable directory, Login=0, and loopback server/proxy settings
+do not provide an OS-enforced outbound network boundary for the native
+terminal/tester. Windows Sandbox with networking disabled is unavailable.
+No terminal/tester was launched, no account/configuration was copied,
+and no firewall/security configuration was changed.
+
+Compiled native test artifacts are not evidence of native test execution.
+Use the compiled pure-test harness in a separately provisioned offline
+MT5 test environment before reporting native runtime assertions as passed.
