@@ -1,0 +1,33 @@
+test_A_poc_space_uses_proposed_actual_entry (test_contracts.ExecutionContractTests.test_A_poc_space_uses_proposed_actual_entry) ... ok
+test_daily_latch_and_counters_reset_only_on_new_ny_day (test_contracts.ExecutionContractTests.test_daily_latch_and_counters_reset_only_on_new_ny_day) ... ok
+test_failed_submission_is_not_resubmitted (test_contracts.ExecutionContractTests.test_failed_submission_is_not_resubmitted) ... ok
+test_group_pnl_includes_floating_change_and_all_costs (test_contracts.ExecutionContractTests.test_group_pnl_includes_floating_change_and_all_costs) ... ok
+test_lot_floor_never_increases_budget (test_contracts.ExecutionContractTests.test_lot_floor_never_increases_budget) ... ok
+test_missing_news_is_fail_closed_and_does_not_gate_management (test_contracts.ExecutionContractTests.test_missing_news_is_fail_closed_and_does_not_gate_management) ... ok
+test_netting_requires_unambiguous_position_deal_ownership (test_contracts.ExecutionContractTests.test_netting_requires_unambiguous_position_deal_ownership) ... ok
+test_restart_preserves_submission_and_partial_fill (test_contracts.ExecutionContractTests.test_restart_preserves_submission_and_partial_fill) ... ok
+test_risk_in_account_currency_with_costs (test_contracts.ExecutionContractTests.test_risk_in_account_currency_with_costs) ... ok
+test_simultaneous_reservation_is_serialized (test_contracts.ExecutionContractTests.test_simultaneous_reservation_is_serialized) ... ok
+test_coverage_nonempty_is_insufficient (test_contracts.ProfileSpecificationTests.test_coverage_nonempty_is_insufficient) ... ok
+test_integer_tick_width_and_requested_row_bound (test_contracts.ProfileSpecificationTests.test_integer_tick_width_and_requested_row_bound) ... ok
+test_m1_proportional_overlap_and_zero_range (test_contracts.ProfileSpecificationTests.test_m1_proportional_overlap_and_zero_range) ... ok
+test_maximum_included_in_final_bin_and_weight_conserved (test_contracts.ProfileSpecificationTests.test_maximum_included_in_final_bin_and_weight_conserved) ... ok
+test_missing_profile_blocks (test_contracts.ProfileSpecificationTests.test_missing_profile_blocks) ... ok
+test_poc_ties_midpoint_then_lower (test_contracts.ProfileSpecificationTests.test_poc_ties_midpoint_then_lower) ... ok
+test_quote_flags_and_same_millisecond_events (test_contracts.ProfileSpecificationTests.test_quote_flags_and_same_millisecond_events) ... ok
+test_trade_quote_record_does_not_repeat_stale_volume (test_contracts.ProfileSpecificationTests.test_trade_quote_record_does_not_repeat_stale_volume) ... ok
+test_value_area_adjacent_ties_choose_lower (test_contracts.ProfileSpecificationTests.test_value_area_adjacent_ties_choose_lower) ... ok
+test_all_handcheck_cases (test_contracts.SignalSpecificationTests.test_all_handcheck_cases) ... ok
+test_every_prefix_has_no_future_dependency (test_contracts.SignalSpecificationTests.test_every_prefix_has_no_future_dependency) ... ok
+test_replay_stable_identifier_and_reset (test_contracts.SignalSpecificationTests.test_replay_stable_identifier_and_reset) ... ok
+test_signal_entry_interval_and_price_drift (test_contracts.SignalSpecificationTests.test_signal_entry_interval_and_price_drift) ... ok
+test_half_open_entry_window_and_overnight (test_contracts.TimeSpecificationTests.test_half_open_entry_window_and_overnight) ... ok
+test_historical_2006_and_emergency_1974 (test_contracts.TimeSpecificationTests.test_historical_2006_and_emergency_1974) ... ok
+test_mismatched_us_eu_transition_weeks (test_contracts.TimeSpecificationTests.test_mismatched_us_eu_transition_weeks) ... ok
+test_previous_completed_eligible_day (test_contracts.TimeSpecificationTests.test_previous_completed_eligible_day) ... ok
+test_us_transition_exact_seconds (test_contracts.TimeSpecificationTests.test_us_transition_exact_seconds) ... ok
+
+----------------------------------------------------------------------
+Ran 28 tests in 0.013s
+
+OK

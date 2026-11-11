@@ -1,0 +1,31 @@
+{
+  "schema": "Synthetic completed Bid OHLC bars; each array is [open, high, low, close, ATR]. Initial preceding close defaults to 105. Bar time = 2026-01-05 14:00 UTC + index * 300 seconds. No broker or market data.",
+  "defaults": {"val": 100, "vah": 110, "poc": 105, "previous_session_close": 105, "previous_bar_close": 105, "tick_size": 0.1, "period_seconds": 300},
+  "cases": [
+    {"name":"A_long_default_space_valid","enabled":"A","bars":[[100,100.1,99.7,99.8,2],[99.8,100.5,99.75,100.3,2]],"expected":[{"index":1,"setup":1,"direction":1,"stop":99.5,"atr":2,"buffer":0.2}]},
+    {"name":"A_short_default_space_valid","enabled":"A","bars":[[110,110.3,109.9,110.2,2],[110.2,110.25,109.5,109.7,2]],"expected":[{"index":1,"setup":1,"direction":-1,"stop":110.5,"atr":2,"buffer":0.2}]},
+    {"name":"A_long_valid","enabled":"A","bars":[[100,101,97,99,10],[99,103,98,101,10]],"expected":[{"index":1,"setup":1,"direction":1,"stop":96,"atr":10,"buffer":1}]},
+    {"name":"A_short_valid","enabled":"A","bars":[[110,113,109,111,10],[111,112,107,109,10]],"expected":[{"index":1,"setup":1,"direction":-1,"stop":114,"atr":10,"buffer":1}]},
+    {"name":"A_previous_close_ineligible","enabled":"A","previous_session_close":111,"bars":[[100,101,97,99,10],[99,103,98,101,10]],"expected":[]},
+    {"name":"A_third_opportunity_valid","enabled":"A","bars":[[100,101,97,99,10],[99,100,96,98,10],[98,100,95,99,10],[99,103,98,101,10]],"expected":[{"index":3,"setup":1,"direction":1,"stop":94,"atr":10,"buffer":1}]},
+    {"name":"A_expiry_requires_later_inside_rearm","enabled":"A","bars":[[100,101,97,99,10],[99,100,96,98,10],[98,100,95,99,10],[99,100,94,99,10],[99,103,98,101,10],[101,102,97,99,10],[99,104,98,102,10]],"expected":[{"index":6,"setup":1,"direction":1,"stop":96,"atr":10,"buffer":1}]},
+    {"name":"A_outside_does_not_restart_timer","enabled":"A","bars":[[100,101,97,99,10],[99,100,96,98,10],[98,99,95,97,10],[97,98,94,96,10],[96,97,93,95,10],[95,103,94,101,10]],"expected":[]},
+    {"name":"A_boundary_is_not_confirmation","enabled":"A","bars":[[100,101,97,99,10],[99,101,98,100,10],[100,103,99,101,10]],"expected":[{"index":2,"setup":1,"direction":1,"stop":96,"atr":10,"buffer":1}]},
+    {"name":"A_direction_tie_long_first","enabled":"A","bars":[[100,101,97,99,10],[99,113,98,111,10],[111,112,103,105,10]],"expected":[{"index":2,"setup":1,"direction":1,"stop":96,"atr":10,"buffer":1}]},
+    {"name":"B_long_valid","enabled":"B","previous_bar_close":110,"bars":[[110,114,109,112,10],[112,113,109,111,10],[111,116,110,115,10]],"expected":[{"index":2,"setup":2,"direction":1,"stop":108,"atr":10,"buffer":1}]},
+    {"name":"B_short_valid","enabled":"B","previous_bar_close":100,"bars":[[100,101,96,98,10],[98,101,97,99,10],[99,99,94,95,10]],"expected":[{"index":2,"setup":2,"direction":-1,"stop":102,"atr":10,"buffer":1}]},
+    {"name":"B_breakout_bar_cannot_be_retest","enabled":"B","previous_bar_close":110,"bars":[[110,114,109,112,10],[112,116,112,115,10]],"expected":[]},
+    {"name":"B_far_close_invalidates","enabled":"B","previous_bar_close":110,"bars":[[110,114,109,112,10],[112,113,107,108,10],[108,116,107,115,10]],"expected":[]},
+    {"name":"B_sixth_retest_opportunity_valid","enabled":"B","previous_bar_close":110,"bars":[[112,114,112,112,10],[112,113,112,112,10],[112,113,112,112,10],[112,113,112,112,10],[112,113,112,112,10],[112,113,112,112,10],[112,113,109,111,10],[111,116,110,115,10]],"expected":[{"index":7,"setup":2,"direction":1,"stop":108,"atr":10,"buffer":1}]},
+    {"name":"B_seventh_retest_too_late","enabled":"B","previous_bar_close":110,"bars":[[112,114,112,112,10],[112,113,112,112,10],[112,113,112,112,10],[112,113,112,112,10],[112,113,112,112,10],[112,113,112,112,10],[112,113,112,112,10],[112,113,109,111,10],[111,116,110,115,10]],"expected":[]},
+    {"name":"B_fourth_confirmation_too_late","enabled":"B","previous_bar_close":110,"bars":[[110,114,109,112,10],[112,113,109,111,10],[112,114,112,113,10],[113,114,112,113,10],[113,114,112,113,10],[113,116,112,115,10]],"expected":[]},
+    {"name":"B_frozen_atr_buffer","enabled":"B","previous_bar_close":110,"bars":[[110,114,109,112,10],[112,113,109,111,50],[111,116,110,115,50]],"expected":[{"index":2,"setup":2,"direction":1,"stop":108,"atr":10,"buffer":1}]},
+    {"name":"C_long_valid","enabled":"C","previous_session_close":111,"previous_bar_close":107,"bars":[[106.5,108,105.5,107.5,10]],"expected":[{"index":0,"setup":3,"direction":1,"stop":104.5,"atr":10,"buffer":1}]},
+    {"name":"C_short_valid","enabled":"C","previous_session_close":99,"previous_bar_close":103,"bars":[[103.5,104.5,102,102.5,10]],"expected":[{"index":0,"setup":3,"direction":-1,"stop":105.5,"atr":10,"buffer":1}]},
+    {"name":"C_approach_invalid","enabled":"C","previous_session_close":111,"previous_bar_close":105.5,"bars":[[106.5,108,105.5,107.5,10]],"expected":[]},
+    {"name":"C_bearish_candle_invalid","enabled":"C","previous_session_close":111,"previous_bar_close":107,"bars":[[108,109,105.5,107.5,10]],"expected":[]},
+    {"name":"C_far_side_close_invalid","enabled":"C","previous_session_close":111,"previous_bar_close":107,"bars":[[106,108,102,103,10]],"expected":[]},
+    {"name":"C_previous_session_boundary_ineligible","enabled":"C","previous_session_close":110,"previous_bar_close":107,"bars":[[106.5,108,105.5,107.5,10]],"expected":[]},
+    {"name":"B_priority_over_C","enabled":"BC","previous_session_close":111,"previous_bar_close":110,"bars":[[110,114,109,112,10],[112,113,109,111,10],[110,116,105,115,10]],"expected":[{"index":2,"setup":2,"direction":1,"stop":104,"atr":10,"buffer":1}]}
+  ]
+}
